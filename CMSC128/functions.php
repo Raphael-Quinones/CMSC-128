@@ -27,6 +27,8 @@ function addStudent($studentId, $firstName, $lastName, $email) {
     // Close the statement and connection
     $stmt->close();
     $conn->close();
+
+    echo "addStudent finished executing";
 }
 
 function startChargingSession($studentId) {
