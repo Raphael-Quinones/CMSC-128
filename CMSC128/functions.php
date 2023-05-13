@@ -94,6 +94,89 @@ function getChargingHistory($studentId) {
     return $rows;
 }
 
+function getStudentEmail($studentId) {
+    // Connect to the database
+    $conn = new mysqli($servername, $username, $password, $database);
+
+    // Prepare the SELECT statement
+    $stmt = $conn->prepare("SELECT email FROM student WHERE student_id = ?");
+    $stmt->bind_param("i", $studentId);
+
+    // Execute the query
+    $stmt->execute();
+
+    // Bind the result to a variable
+    $stmt->bind_result($email);
+
+    // Fetch the result
+    $stmt->fetch();
+
+    // Close the statement and connection
+    $stmt->close();
+    $conn->close();
+
+    // Return the student's email
+    return $email;
+}
+
+function getRemainingTime($studentId) {
+    // Connect to the database
+    $conn = new mysqli($servername, $username, $password, $database);
+
+    // Prepare the SELECT statement
+    $stmt = $conn->prepare("SELECT total_charge_time FROM student WHERE student_id = ?");
+    $stmt->bind_param("i", $studentId);
+
+    // Execute the query
+    $stmt->execute();
+
+    // Bind the result to a variable
+    $stmt->bind_result($totalChargeTime);
+
+    // Fetch the result
+    $stmt->fetch();
+
+    // Close the statement and connection
+    $stmt->close();
+    $conn->close();
+
+    // Calculate remaining time based on total_charge_time logic
+    $remainingTime = 120 - $totalChargeTime; // Assuming 120 minutes is the maximum charging time
+
+    // Return the remaining time
+    return $remainingTime;
+}
+
+function sendEmailToStudent($studentEmail, $remainingTime) {
+    $apiKey = 'mailgun_api_key';
+    $domain = 'mailgun_domain';
+    $fromEmail = 'sender_email@example.com';
+    $fromName = 'Library yowzzzz';
+
+    $subject = 'Remaining Charging Time';
+    $message = "Dear student,\n\nYou have $remainingTime minutes remaining for your charging session.\n\nBest regards,\nYour Library";
+
+    // Prepare the email parameters
+    $params = array(
+        'from' => "$fromName <$fromEmail>",
+        'to' => $studentEmail,
+        'subject' => $subject,
+        'text' => $message
+    );
+
+    // Send the email using Mailgun API
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "https://api.mailgun.net/v3/$domain/messages");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_USERPWD, "api:$apiKey");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    return $response;
+}
 
 
 ?>
