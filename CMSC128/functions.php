@@ -55,17 +55,39 @@ function endChargingSession($sessionId) {
     // Get the current timestamp
     $endTime = date("Y-m-d H:i:s");
 
-    // Prepare the UPDATE statement
+    // Prepare the UPDATE statement to end the charging session
     $stmt = $conn->prepare("UPDATE charging_session SET end_time = ? WHERE session_id = ?");
     $stmt->bind_param("si", $endTime, $sessionId);
 
-    // Execute the query
+    // Execute the query to end the charging session
     $stmt->execute();
 
-    // Close the statement and connection
+    // Get the student_id associated with the session_id
+    $stmt = $conn->prepare("SELECT student_id FROM charging_session WHERE session_id = ?");
+    $stmt->bind_param("i", $sessionId);
+    $stmt->execute();
+    $stmt->bind_result($studentId);
+    $stmt->fetch();
     $stmt->close();
+
+    // Calculate the total charge time for the student
+    $stmt = $conn->prepare("SELECT SUM(TIMESTAMPDIFF(MINUTE, start_time, end_time)) FROM charging_session WHERE student_id = ?");
+    $stmt->bind_param("i", $studentId);
+    $stmt->execute();
+    $stmt->bind_result($totalChargeTime);
+    $stmt->fetch();
+    $stmt->close();
+
+    // Update the total_charge_time in the student table
+    $stmt = $conn->prepare("UPDATE student SET total_charge_time = ? WHERE student_id = ?");
+    $stmt->bind_param("ii", $totalChargeTime, $studentId);
+    $stmt->execute();
+    $stmt->close();
+
+    // Close the connection
     $conn->close();
 }
+
 
 function getChargingHistory($studentId) {
     // Connect to the database
